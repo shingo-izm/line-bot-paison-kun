@@ -9,6 +9,5 @@
 rootProject.name = "line-bot-paison-kun"
 
 include(
-    "functions:scheduler",
-    "functions:webhook",
+    "functions:scheduled",
 )
