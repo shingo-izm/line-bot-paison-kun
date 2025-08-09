@@ -6,4 +6,9 @@
  * This project uses @Incubating APIs which are subject to change.
  */
 
-rootProject.name = "pythonKun"
+rootProject.name = "line-bot-paison-kun"
+
+include(
+    "functions:scheduler",
+    "functions:webhook",
+)
