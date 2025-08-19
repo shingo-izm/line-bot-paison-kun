@@ -30,6 +30,4 @@ class SpreadsheetService(
             .setIncludeValuesInResponse(false)
             .execute()
     }
-
-
 }
