@@ -8,7 +8,7 @@ import java.time.YearMonth
 import java.util.*
 
 class SpreadsheetService(
-    private val spreadsheetId: String = "dummy",
+    private val spreadsheetId: String,
     credentialsProvider: () -> com.google.api.client.http.HttpRequestInitializer
 ) {
     private val sheets: Sheets = Sheets.Builder(
