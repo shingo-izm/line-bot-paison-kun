@@ -1,0 +1,102 @@
+name: tf-manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Which branch to deploy from?"
+        required: true
+        default: "main"
+        type: string
+      mode:
+        description: "Terraform mode"
+        required: true
+        default: "plan"
+        type: choice
+        options: [ "plan", "apply" ]
+
+permissions:
+  id-token: write   # OIDC for AWS
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-1
+  TF_WORKING_DIR: infra
+  ARTIFACT_JAR: build/libs/monthly-schedule-task-all.jar
+  HANDLER: MonthlyScheduleTask   # パッケージ付けたら dev.sizumikawa.linebot.scheduler.MonthlyScheduleTask などに変更
+
+jobs:
+  tf:
+    name: "Terraform ${{ inputs.mode }} on '${{ inputs.branch }}'"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build fat JAR
+        run: ./gradlew --no-daemon clean shadowJar
+
+      - name: Show artifact
+        run: ls -alh build/libs
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init/Validate
+        run: |
+          terraform -chdir=$TF_WORKING_DIR init
+          terraform -chdir=$TF_WORKING_DIR fmt -check
+          terraform -chdir=$TF_WORKING_DIR validate
+
+      # ---- PLAN MODE ----
+      - name: Terraform Plan (-detailed-exitcode)
+        if: ${{ inputs.mode == 'plan' }}
+        run: |
+          set +e
+          terraform -chdir=$TF_WORKING_DIR plan \
+            -detailed-exitcode \
+            -var="artifact_path=${{ env.ARTIFACT_JAR }}" \
+            -var="handler=${{ env.HANDLER }}" \
+            -var="line_channel_access_token=${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
+            -var="line_group_id=${{ secrets.LINE_GROUP_ID }}" \
+            -var="google_spreadsheet_id=${{ secrets.GOOGLE_SPREADSHEET_ID }}" \
+            -var="google_service_account_json_b64=${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_B64 }}"
+          ec=$?
+          if [ $ec -eq 1 ]; then
+            echo "Terraform plan failed"; exit 1;
+          elif [ $ec -eq 0 ]; then
+            echo "No changes."
+          else
+            echo "Changes detected."
+          fi
+          exit 0
+
+      # ---- APPLY MODE (no pre-plan) ----
+      - name: Terraform Apply (direct)
+        if: ${{ inputs.mode == 'apply' }}
+        run: |
+          terraform -chdir=$TF_WORKING_DIR apply -auto-approve \
+            -var="artifact_path=${{ env.ARTIFACT_JAR }}" \
+            -var="handler=${{ env.HANDLER }}" \
+            -var="line_channel_access_token=${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" \
+            -var="line_group_id=${{ secrets.LINE_GROUP_ID }}" \
+            -var="google_spreadsheet_id=${{ secrets.GOOGLE_SPREADSHEET_ID }}" \
+            -var="google_service_account_json_b64=${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_B64 }}"
