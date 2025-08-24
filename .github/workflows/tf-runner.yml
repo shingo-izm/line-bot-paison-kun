@@ -3,43 +3,38 @@ name: tf-manual
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: "Which branch to deploy from?"
-        required: true
-        default: "main"
-        type: string
       mode:
         description: "Terraform mode"
         required: true
-        default: "plan"
+        default: "apply"
         type: choice
         options: [ "plan", "apply" ]
 
 permissions:
-  id-token: write   # OIDC for AWS
+  id-token: write
   contents: read
 
 env:
   AWS_REGION: ap-northeast-1
   TF_WORKING_DIR: infra
   ARTIFACT_JAR: build/libs/monthly-schedule-task-all.jar
-  HANDLER: MonthlyScheduleTask   # パッケージ付けたら dev.sizumikawa.linebot.scheduler.MonthlyScheduleTask などに変更
+  HANDLER: dev.sizumikawa.MonthlyScheduleTask
 
 jobs:
   tf:
-    name: "Terraform ${{ inputs.mode }} on '${{ inputs.branch }}'"
+    name: "Terraform ${{ inputs.mode }} on '${{ inputs.ref_name }}'"
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.ref_name }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: corretto
           java-version: "21"
 
       - name: Setup Gradle cache
