@@ -3,10 +3,9 @@ variable "function_name" {
   default = "monthly-schedule-task"
 }
 
-# パッケージ無しの場合の暫定ハンドラ。パッケージ付与したら "com.example.MonthlyScheduleTask" に変更
 variable "handler" {
   type    = string
-  default = "MonthlyScheduleTask"
+  default = "dev.sizumikawa.MonthlyScheduleTask"
 }
 
 # CIで作るZip（Fat JAR + service-account.json）

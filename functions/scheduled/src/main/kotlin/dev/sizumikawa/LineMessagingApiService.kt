@@ -1,3 +1,5 @@
+package dev.sizumikawa
+
 import com.linecorp.bot.messaging.client.MessagingApiClient
 import com.linecorp.bot.messaging.model.PushMessageRequest
 import com.linecorp.bot.messaging.model.TextMessageV2
