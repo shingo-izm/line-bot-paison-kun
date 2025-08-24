@@ -22,7 +22,7 @@ env:
 
 jobs:
   tf:
-    name: "Terraform ${{ inputs.mode }} on '${{ inputs.ref_name }}'"
+    name: "Terraform ${{ inputs.mode }} on ${{ inputs.ref_name }}"
     runs-on: ubuntu-latest
 
     steps:
